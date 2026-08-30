@@ -10,7 +10,7 @@ declare(strict_types=1);
  * شماره‌ی ساختار. هر بار که جدول یا ستونی به این فایل اضافه شد،
  * این عدد را یکی زیاد کن تا مهاجرت دوباره اجرا شود.
  */
-const SCHEMA_VERSION = '4';
+const SCHEMA_VERSION = '5';
 
 /**
  * ساختار جدول‌ها را کامل می‌کند.
@@ -312,6 +312,17 @@ function auto_migrate(PDO $pdo): void {
             KEY idx_caller (caller_id, started_at),
             KEY idx_receiver (receiver_id, started_at)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+
+        // ── گروه پیش‌فرض ──
+        // در نصب تازه هیچ گروهی وجود ندارد، پس اولین کاربر وارد صفحه‌ی
+        // خالی می‌شد. اگر هیچ گروهی نیست، یکی بساز.
+        try {
+            $roomCount = (int)$pdo->query('SELECT COUNT(*) FROM rooms')->fetchColumn();
+            if ($roomCount === 0 && function_exists('get_default_room_id')) {
+                get_default_room_id($pdo);
+            }
+        } catch (\Throwable $e) {}
 
         // ── جا انداختن سطح دسترسی روی داده‌ی موجود ──
         try {

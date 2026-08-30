@@ -42,7 +42,8 @@ try {
 
         // ─── VIP ───
         case 'vip':
-            $requireTarget($uid);
+            // برچسب نمایشی است، نه سطح دسترسی — مدیر از قبل امتیاز ویژه دارد
+            $requireTarget($uid, true);
             $val   = (int)($_POST['value'] ?? 1);
             $label = trim($_POST['vip_label'] ?? '');
             if ($label !== '' && mb_strlen($label) > 60) throw new RuntimeException('عنوان VIP طولانی است.');
@@ -164,7 +165,7 @@ try {
 
         // ─── تنظیم VIP label ───
         case 'vip_label':
-            $requireTarget($uid);
+            $requireTarget($uid, true);
             $label = trim($_POST['vip_label'] ?? '');
             $pdo->prepare('UPDATE users SET vip_label=? WHERE id=?')->execute([$label ?: null, $uid]);
             json_response(['ok' => true, 'message' => 'عنوان VIP ذخیره شد.']);
