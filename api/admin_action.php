@@ -20,11 +20,20 @@ $myId      = current_user_id();
 // هر مدیری درست بود و هر مدیری می‌توانست رمز سازنده را عوض کند.
 $isSuperAdmin = current_user_is_owner();
 
-/** هدف را اعتبارسنجی می‌کند: باید وجود داشته باشد و رتبه‌اش پایین‌تر باشد */
-$requireTarget = function (int $target) use ($myId): int {
-    if ($target <= 0)              throw new RuntimeException('کاربر نامعتبر.');
-    if ($target === $myId)         throw new RuntimeException('روی حساب خودتان نمی‌توانید این کار را بکنید.');
-    if (!can_act_on($target))      throw new RuntimeException('این کاربر هم‌رده یا بالاتر از شماست.');
+/**
+ * هدف را اعتبارسنجی می‌کند: باید وجود داشته باشد و رتبه‌اش پایین‌تر باشد.
+ *
+ * $allowSelf برای کارهایی است که روی حساب خودت منطقی‌اند — مثل عوض کردن
+ * رمز خودت. بقیه‌ی کارها (مسدود کردن، حذف، تغییر سطح دسترسی) روی خودت
+ * بی‌معنی یا خطرناکند و همچنان بسته می‌مانند.
+ */
+$requireTarget = function (int $target, bool $allowSelf = false) use ($myId): int {
+    if ($target <= 0) throw new RuntimeException('کاربر نامعتبر.');
+    if ($target === $myId) {
+        if ($allowSelf) return $target;
+        throw new RuntimeException('این کار روی حساب خودتان ممکن نیست.');
+    }
+    if (!can_act_on($target)) throw new RuntimeException('این کاربر هم‌رده یا بالاتر از شماست.');
     return $target;
 };
 
@@ -77,8 +86,9 @@ try {
         // ─── تغییر رمز ───
         case 'change_password':
             // نسخه‌ی قبلی اجازه می‌داد هر مدیری رمز هر کسی از جمله سازنده
-            // را عوض کند و سایت را تحویل بگیرد.
-            $requireTarget($uid);
+            // را عوض کند و سایت را تحویل بگیرد. حالا فقط روی رتبه‌ی
+            // پایین‌تر — یا روی حساب خودت، که کاملاً بجاست.
+            $requireTarget($uid, true);
             $pass = trim($_POST['new_password'] ?? '');
             if (strlen($pass) < ADMIN_SET_MIN_PASSWORD) {
                 throw new RuntimeException('رمز حداقل ' . ADMIN_SET_MIN_PASSWORD . ' کاراکتر.');
