@@ -104,6 +104,8 @@
 
 ## 🖼️ تصاویر
 
+روی هر عنوان کلیک کن تا تصویرش باز شود.
+
 </div>
 
 <div align="center">
@@ -112,33 +114,86 @@
 
 ![داشبورد](docs/screenshots/admin.png)
 
-**مدیریت کاربران — با انتخاب گروهی**
+</div>
+
+<div dir="rtl" align="right">
+
+<details>
+<summary><b>👥 مدیریت کاربران — با انتخاب گروهی</b></summary>
+
+<div align="center">
 
 ![مدیریت کاربران](docs/screenshots/users.png)
 
-**دیده‌بان ثبت‌نام**
+</div>
+
+</details>
+
+<details>
+<summary><b>🆕 دیده‌بان ثبت‌نام</b></summary>
+
+<div align="center">
 
 ![ثبت‌نام‌ها](docs/screenshots/signups.png)
 
-**تاریخچه‌ی تماس**
+</div>
+
+</details>
+
+<details>
+<summary><b>📞 تاریخچه‌ی تماس</b></summary>
+
+<div align="center">
 
 ![لاگ تماس](docs/screenshots/calls.png)
 
-**دفتر کارهای مدیران**
+</div>
+
+</details>
+
+<details>
+<summary><b>📜 دفتر کارهای مدیران</b></summary>
+
+<div align="center">
 
 ![دفتر مدیران](docs/screenshots/audit.png)
 
-**تنظیمات**
+</div>
+
+</details>
+
+<details>
+<summary><b>🏠 مدیریت گروه‌ها</b></summary>
+
+<div align="center">
+
+![گروه‌ها](docs/screenshots/rooms.png)
+
+</div>
+
+</details>
+
+<details>
+<summary><b>⚙️ تنظیمات</b></summary>
+
+<div align="center">
 
 ![تنظیمات](docs/screenshots/settings.png)
 
-**ورود**
+</div>
+
+</details>
+
+<details>
+<summary><b>🔑 صفحه‌ی ورود</b></summary>
+
+<div align="center">
 
 ![ورود](docs/screenshots/login.png)
 
 </div>
 
-<div dir="rtl" align="right">
+</details>
 
 ## 🚀 نصب
 
@@ -352,28 +407,44 @@ manifest.php            فهرست نصب روی گوشی
 
 ## 🤝 مشارکت
 
-اگر باگی دیدی یا امکانی می‌خواهی، ایشو باز کن. پول‌ریکوئست هم پذیرفته می‌شود.
+کبوتر **متن‌باز** است. یعنی کد کاملاً در اختیار توست و لازم نیست منتظر کسی بمانی.
+
+**باگی دیدی؟** خودت درستش کن. کد را باز کن، اگر بلد نیستی از یک دستیار هوش مصنوعی کمک بگیر — فایل‌ها کوچک و کامنت‌گذاری‌شده‌اند و ساختار پروژه ساده است. بعد پول‌ریکوئست بفرست تا برای بقیه هم درست شود.
+
+**امکانی می‌خواهی؟** همین‌طور. اضافه‌اش کن و بفرست.
+
+**نمی‌خواهی خودت دست بزنی؟** ایشو باز کن و بگو چه دیدی — چه اتفاقی افتاد، انتظار داشتی چه بشود، و روی چه هاستی.
+
+هر پول‌ریکوئستی که کد را ساده‌تر یا امن‌تر کند، پذیرفته می‌شود.
 
 ## 📄 پروانه
 
-[MIT](LICENSE) — آزادانه استفاده کن، تغییر بده، منتشر کن.
+[MIT](LICENSE) — آزادانه استفاده کن، تغییر بده، بفروش، منتشر کن. فقط نام پدیدآورنده را نگه دار.
 
-قلم **وزیرمتن** با پروانه‌ی [SIL Open Font License](assets/fonts/Vazirmatn/OFL.txt) همراه پروژه می‌آید.
+قلم **وزیرمتن** پروانه‌ی جدای خودش را دارد: [SIL Open Font License](assets/fonts/Vazirmatn/OFL.txt)
 
 </div>
 
 ---
 
-<div align="center">
+<div align="center" dir="ltr">
 
 <sub>
 
-**Kabutar** — a Persian (Farsi) RTL web messenger for shared hosting.
-Group chat, private messages, voice & video calls, admin panel.
+<b>Kabutar</b> — a Persian (Farsi) RTL web messenger for shared hosting.
+
+Group chat, private messages, WebRTC voice &amp; video calls, admin panel.
+
 PHP + MySQL only — no Node, no WebSocket, no Docker, no root access.
+
 A self-hosted alternative to commercial chat services.
 
-`persian chat` · `farsi messenger` · `rtl chat` · `php chat script` · `self-hosted chat` · `shared hosting` · `webrtc` · `chat room`
+</sub>
+
+<sub>
+
+<code>persian chat</code> · <code>farsi messenger</code> · <code>rtl chat</code> · <code>php chat script</code><br>
+<code>self-hosted chat</code> · <code>shared hosting</code> · <code>webrtc</code> · <code>chat room</code>
 
 </sub>
 
