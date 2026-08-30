@@ -24,6 +24,14 @@ function h(string $value): string {
     return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
 }
 
+/** ارقام لاتین را به فارسی تبدیل می‌کند — برای نمایش، نه برای ورودی */
+function fa($value): string {
+    return strtr((string)$value, [
+        '0'=>'۰','1'=>'۱','2'=>'۲','3'=>'۳','4'=>'۴',
+        '5'=>'۵','6'=>'۶','7'=>'۷','8'=>'۸','9'=>'۹',
+    ]);
+}
+
 function json_response(array $data, int $status = 200): void {
     http_response_code($status);
     header('Content-Type: application/json; charset=utf-8');

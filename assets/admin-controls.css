@@ -1,0 +1,179 @@
+/* ═══════════════════════════════════════════════════════════════
+   کنترل‌های فرم و اسکرول
+   ───────────────────────────────────────────────────────────────
+   عناصر خام مرورگر — تیک، اسکرول، فهرست کشویی، ورودی عددی — با
+   رنگ‌های روشن سیستم‌عامل ظاهر می‌شدند و توی پنل تیره وصله می‌زدند.
+   این‌جا همه با پالت خود پنل بازسازی شده‌اند.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── اسکرول ────────────────────────────────────────────────── */
+.adm-layout *::-webkit-scrollbar { width: 10px; height: 10px; }
+.adm-layout *::-webkit-scrollbar-track {
+  background: var(--bg);
+  border-radius: 8px;
+}
+.adm-layout *::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #24405c, #1a2e44);
+  border: 2px solid var(--bg);
+  border-radius: 8px;
+}
+.adm-layout *::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #326a94, #24405c);
+}
+.adm-layout *::-webkit-scrollbar-corner { background: var(--bg); }
+
+/* فایرفاکس */
+.adm-layout, .adm-layout * {
+  scrollbar-width: thin;
+  scrollbar-color: #24405c var(--bg);
+}
+
+/* ── تیک ───────────────────────────────────────────────────── */
+.adm-layout input[type="checkbox"]:not(.toggle-sw input) {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+  margin: 0;
+  border: 2px solid #2b4761;
+  border-radius: 6px;
+  background: var(--elev);
+  cursor: pointer;
+  position: relative;
+  transition: background .15s, border-color .15s, box-shadow .15s;
+}
+.adm-layout input[type="checkbox"]:not(.toggle-sw input):hover:not(:disabled) {
+  border-color: var(--accent);
+}
+.adm-layout input[type="checkbox"]:not(.toggle-sw input):checked {
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border-color: transparent;
+}
+/* علامت تیک — با خود عنصر کشیده می‌شود، نه با قلم سیستم */
+.adm-layout input[type="checkbox"]:not(.toggle-sw input):checked::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 5px;
+  height: 10px;
+  border: solid #fff;
+  border-width: 0 2.5px 2.5px 0;
+  transform: translateY(-1px) rotate(45deg);
+}
+.adm-layout input[type="checkbox"]:not(.toggle-sw input):focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(58, 164, 255, .35);
+}
+.adm-layout input[type="checkbox"]:not(.toggle-sw input):disabled {
+  opacity: .3;
+  cursor: not-allowed;
+  background: #0d1622;
+}
+
+/* ── ورودی متن، عدد، جستجو ─────────────────────────────────── */
+.adm-layout input[type="text"],
+.adm-layout input[type="search"],
+.adm-layout input[type="password"],
+.adm-layout input[type="number"],
+.adm-layout textarea,
+.adm-layout select {
+  background: var(--elev);
+  color: var(--ink);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 9px 12px;
+  font: inherit;
+  font-size: 13px;
+  transition: border-color .15s, box-shadow .15s;
+}
+.adm-layout input:focus,
+.adm-layout textarea:focus,
+.adm-layout select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(58, 164, 255, .18);
+}
+.adm-layout ::placeholder { color: #4d6a83; }
+
+/* دکمه‌های بالا/پایین ورودی عددی — به‌جای فلش ریز سیستم */
+.adm-layout input[type="number"] { -moz-appearance: textfield; }
+.adm-layout input[type="number"]::-webkit-outer-spin-button,
+.adm-layout input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.adm-stepper {
+  display: inline-flex;
+  align-items: stretch;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--elev);
+}
+.adm-stepper input[type="number"] {
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  text-align: center;
+  width: 74px;
+  background: transparent;
+}
+.adm-stepper button {
+  width: 32px;
+  border: 0;
+  background: #16283a;
+  color: var(--ink);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background .15s;
+}
+.adm-stepper button:hover { background: #1f374e; }
+.adm-stepper button:active { background: var(--accent); }
+
+/* ضربدر پاک‌کردن در جستجو */
+.adm-layout input[type="search"]::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  height: 14px;
+  width: 14px;
+  cursor: pointer;
+  background: currentColor;
+  opacity: .45;
+  mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M18 6L6 18M6 6l12 12' stroke='black' stroke-width='2.5' stroke-linecap='round'/></svg>") center/contain no-repeat;
+  -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M18 6L6 18M6 6l12 12' stroke='black' stroke-width='2.5' stroke-linecap='round'/></svg>") center/contain no-repeat;
+}
+.adm-layout input[type="search"]::-webkit-search-cancel-button:hover { opacity: 1; }
+
+/* ── فهرست کشویی ───────────────────────────────────────────── */
+.adm-layout select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-inline-end: 34px;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235c7c96' stroke-width='2.5' stroke-linecap='round'><path d='M6 9l6 6 6-6'/></svg>");
+  background-repeat: no-repeat;
+  background-position: left 11px center;
+  background-size: 15px;
+}
+.adm-layout select option {
+  background: var(--panel);
+  color: var(--ink);
+}
+
+/* ── انتخاب متن و ناحیه‌ی تمرکز ────────────────────────────── */
+.adm-layout ::selection { background: rgba(58, 164, 255, .32); color: #fff; }
+.adm-layout a:focus-visible,
+.adm-layout button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+/* ردیف گروه انتخاب‌شده */
+.room-row { gap: 10px; }
+.room-row.selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(58, 164, 255, .3);
+}

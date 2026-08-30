@@ -5352,17 +5352,29 @@ async function sendMessagePayload(text, file) {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 (function() {
   'use strict';
-  // تنظیمات TURN
-  const TURN_CONFIG = {
-    iceServers: [
-      { urls: 'stun:stun.l.google.com:19302' },
-      {
-        urls: 'turn:217.60.238.42:3478',
-        username: 'turnsoheil',
-        credential: 'soheil2MUSIC'
+  // تنظیمات سرور تماس — از سرور گرفته می‌شود، نه نوشته‌شده این‌جا.
+  // پیش از این نشانی و رمز سرور ترن همین‌جا بود و چون این فایل عمومی
+  // است، هر کسی می‌توانست بخواندش.
+  let TURN_CONFIG = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+  let iceFetchedAt = 0;
+
+  async function loadIceServers(force) {
+    // رمزهای موقت عمر محدود دارند، پس هر ده دقیقه دوباره می‌گیریم
+    if (!force && iceFetchedAt && (Date.now() - iceFetchedAt) < 600000) return TURN_CONFIG;
+    try {
+      const r = await fetch('api/ice.php', { credentials: 'same-origin' });
+      const j = await r.json();
+      if (j && j.ok && Array.isArray(j.iceServers) && j.iceServers.length) {
+        TURN_CONFIG = { iceServers: j.iceServers };
+        iceFetchedAt = Date.now();
       }
-    ]
-  };
+    } catch (e) {
+      // اگر نشد، با همان سرور استان پیش‌فرض ادامه بده
+    }
+    return TURN_CONFIG;
+  }
+
+  loadIceServers(true);
 
   // state تماس
   let callState = {
@@ -5548,6 +5560,7 @@ async function sendMessagePayload(text, file) {
 
   // شروع تماس
   async function startCall(withVideo) {
+    await loadIceServers();
     if (callState.active) return;
     const targetId   = window.__chatTargetId;
     const targetName = window.__chatTargetName || 'کاربر';
@@ -5615,6 +5628,7 @@ async function sendMessagePayload(text, file) {
 
   // پاسخ به تماس
   async function acceptCall() {
+    await loadIceServers();
     if (!actionsIn._pendingOffer) return;
     const { sdp, video, fromId, fromName } = actionsIn._pendingOffer;
 

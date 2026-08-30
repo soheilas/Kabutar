@@ -130,18 +130,56 @@ $actionLabels = [
     'bulk_ban' => 'مسدودی گروهی', 'bulk_delete' => 'حذف گروهی',
 ];
 
-// call logs
+// تاریخچه‌ی تماس — از call_log می‌خوانیم، نه call_signals.
+// جدول سیگنال عمداً گذراست و هر چند ثانیه خالی می‌شود، برای همین
+// لاگ تماس پیش از این همیشه خالی بود.
 $callLogs = [];
 try {
     $callLogs = $pdo->query(
-        "SELECT cs.id, cs.caller_id, cs.receiver_id, cs.type, cs.created_at,
+        "SELECT c.id, c.caller_id, c.receiver_id, c.is_video, c.status,
+                c.started_at, c.answered_at, c.ended_at, c.duration_seconds,
                 u1.username AS caller_name, u2.username AS receiver_name
-         FROM call_signals cs
-         LEFT JOIN users u1 ON u1.id=cs.caller_id
-         LEFT JOIN users u2 ON u2.id=cs.receiver_id
-         ORDER BY cs.id DESC LIMIT 50"
+         FROM call_log c
+         LEFT JOIN users u1 ON u1.id = c.caller_id
+         LEFT JOIN users u2 ON u2.id = c.receiver_id
+         ORDER BY c.id DESC LIMIT 100"
     )->fetchAll();
 } catch (\Throwable $e) {}
+
+$callStats = ['total' => 0, 'answered' => 0, 'talk_secs' => 0];
+try {
+    $row = $pdo->query(
+        "SELECT COUNT(*) AS total,
+                SUM(status IN ('answered','ended')) AS answered,
+                COALESCE(SUM(duration_seconds), 0) AS talk_secs
+         FROM call_log WHERE started_at > (NOW() - INTERVAL 30 DAY)"
+    )->fetch();
+    // ادغام، نه جایگزینی — تا اگر ردیف ناقص بود کلیدها سر جایشان بمانند
+    if (is_array($row)) $callStats = array_merge($callStats, array_filter($row, 'is_scalar'));
+} catch (\Throwable $e) {}
+
+$callStatus = [
+    'ringing'  => ['در حال زنگ', 'vip-b'],
+    'answered' => ['در حال گفتگو', 'on-b'],
+    'ended'    => ['پایان‌یافته', 'on-b'],
+    'rejected' => ['رد شده', 'ban-b'],
+    'missed'   => ['بی‌پاسخ', 'ban-b'],
+    'busy'     => ['مشغول', 'ban-b'],
+];
+
+/** ثانیه را به شکل خوانا درمی‌آورد */
+$fmtDuration = static function (?int $secs): string {
+    // خروجی با رقم فارسی برمی‌گردد
+    $secs = (int)$secs;
+    if ($secs <= 0) return '—';
+    if ($secs < 60)   return fa($secs) . ' ثانیه';
+    $m = intdiv($secs, 60);
+    $r = $secs % 60;
+    if ($m < 60) return $r ? fa($m) . ' دقیقه و ' . fa($r) . ' ثانیه' : fa($m) . ' دقیقه';
+    $h = intdiv($m, 60);
+    $m = $m % 60;
+    return $m ? fa($h) . ' ساعت و ' . fa($m) . ' دقیقه' : fa($h) . ' ساعت';
+};
 
 $csrf_token = csrf_token();
 function adm_s(string $k, string $d=''): string { return site_setting($k,$d); }
@@ -152,8 +190,10 @@ function adm_s(string $k, string $d=''): string { return site_setting($k,$d); }
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="csrf-token" content="<?= h($csrf_token) ?>">
+<meta name="min-password" content="<?= (int)ADMIN_SET_MIN_PASSWORD ?>">
 <title>پنل مدیریت</title>
 <link rel="stylesheet" href="assets/admin.css?v=<?= h(asset_version('assets/admin.css')) ?>">
+<link rel="stylesheet" href="assets/admin-controls.css?v=<?= h(asset_version('assets/admin-controls.css')) ?>">
 </head>
 <body>
 
@@ -168,9 +208,9 @@ function adm_s(string $k, string $d=''): string { return site_setting($k,$d); }
 
     <nav class="adm-nav">
       <a href="#s-dash"     class="adm-link active" data-sec="s-dash">    <span class="adm-link-icon">📊</span>داشبورد</a>
-      <a href="#s-users"    class="adm-link" data-sec="s-users">   <span class="adm-link-icon">👥</span>کاربران<span class="adm-badge-count"><?= count($users) ?></span></a>
-      <a href="#s-rooms"    class="adm-link" data-sec="s-rooms">   <span class="adm-link-icon">🏠</span>گروه‌ها<span class="adm-badge-count"><?= count($rooms) ?></span></a>
-      <a href="#s-signups"  class="adm-link" data-sec="s-signups"><span class="adm-link-icon">🆕</span>ثبت‌نام‌ها<?php if ($busyIps): ?><span class="adm-badge-count warn"><?= count($busyIps) ?></span><?php endif; ?></a>
+      <a href="#s-users"    class="adm-link" data-sec="s-users">   <span class="adm-link-icon">👥</span>کاربران<span class="adm-badge-count"><?= fa(count($users)) ?></span></a>
+      <a href="#s-rooms"    class="adm-link" data-sec="s-rooms">   <span class="adm-link-icon">🏠</span>گروه‌ها<span class="adm-badge-count"><?= fa(count($rooms)) ?></span></a>
+      <a href="#s-signups"  class="adm-link" data-sec="s-signups"><span class="adm-link-icon">🆕</span>ثبت‌نام‌ها<?php if ($busyIps): ?><span class="adm-badge-count warn"><?= fa(count($busyIps)) ?></span><?php endif; ?></a>
       <a href="#s-calls"    class="adm-link" data-sec="s-calls">   <span class="adm-link-icon">📞</span>لاگ تماس</a>
       <a href="#s-audit"    class="adm-link" data-sec="s-audit">   <span class="adm-link-icon">📜</span>دفتر مدیران</a>
       <a href="#s-settings" class="adm-link" data-sec="s-settings"><span class="adm-link-icon">⚙️</span>تنظیمات</a>
@@ -203,32 +243,32 @@ function adm_s(string $k, string $d=''): string { return site_setting($k,$d); }
       <div class="stat-row">
         <div class="stat-card blue">
           <div class="stat-icon">👥</div>
-          <div class="stat-val"><?= $stats['total_users'] ?></div>
+          <div class="stat-val"><?= fa($stats['total_users']) ?></div>
           <div class="stat-lbl">کاربر کل</div>
         </div>
         <div class="stat-card green">
           <div class="stat-icon">🟢</div>
-          <div class="stat-val"><?= $stats['online_users'] ?></div>
+          <div class="stat-val"><?= fa($stats['online_users']) ?></div>
           <div class="stat-lbl">آنلاین الان</div>
         </div>
         <div class="stat-card purple">
           <div class="stat-icon">💬</div>
-          <div class="stat-val"><?= $stats['messages_today'] ?></div>
+          <div class="stat-val"><?= fa($stats['messages_today']) ?></div>
           <div class="stat-lbl">پیام امروز</div>
         </div>
         <div class="stat-card teal">
           <div class="stat-icon">🏠</div>
-          <div class="stat-val"><?= $stats['total_rooms'] ?></div>
+          <div class="stat-val"><?= fa($stats['total_rooms']) ?></div>
           <div class="stat-lbl">گروه</div>
         </div>
         <div class="stat-card red">
           <div class="stat-icon">🚫</div>
-          <div class="stat-val"><?= $stats['banned_users'] ?></div>
+          <div class="stat-val"><?= fa($stats['banned_users']) ?></div>
           <div class="stat-lbl">مسدود</div>
         </div>
         <div class="stat-card orange">
           <div class="stat-icon">🆕</div>
-          <div class="stat-val"><?= $stats['new_today'] ?></div>
+          <div class="stat-val"><?= fa($stats['new_today']) ?></div>
           <div class="stat-lbl">ثبت‌نام امروز</div>
         </div>
       </div>
@@ -241,10 +281,10 @@ function adm_s(string $k, string $d=''): string { return site_setting($k,$d); }
           <div class="bar-col">
             <div class="bar-wrap">
               <div class="bar-fill" style="height:<?= $day['c']>0 ? max(6,round($day['c']/$maxDay*100)) : 0 ?>%">
-                <?php if($day['c']>0): ?><span class="bar-val"><?= $day['c'] ?></span><?php endif; ?>
+                <?php if($day['c']>0): ?><span class="bar-val"><?= fa($day['c']) ?></span><?php endif; ?>
               </div>
             </div>
-            <div class="bar-lbl"><?= $day['l'] ?></div>
+            <div class="bar-lbl"><?= fa($day['l']) ?></div>
           </div>
           <?php endforeach; ?>
         </div>
@@ -258,10 +298,10 @@ function adm_s(string $k, string $d=''): string { return site_setting($k,$d); }
           <tbody>
           <?php foreach ($recentReg as $i=>$u): ?>
             <tr>
-              <td class="adm-muted"><?= $i+1 ?></td>
+              <td class="adm-muted"><?= fa($i+1) ?></td>
               <td><code class="adm-code">@<?= h($u['username']) ?></code></td>
               <td><?= h($u['display_name'] ?? '—') ?></td>
-              <td class="adm-muted"><?= h($u['created_at']) ?></td>
+              <td class="adm-muted"><?= fa(date('Y/m/d H:i', strtotime((string)$u['created_at']))) ?></td>
             </tr>
           <?php endforeach; ?>
           </tbody>
@@ -276,7 +316,7 @@ function adm_s(string $k, string $d=''): string { return site_setting($k,$d); }
       <div class="adm-toolbar">
         <input type="search" id="user-search" class="adm-search" placeholder="🔍 جستجو...">
         <div class="adm-filter-tabs">
-          <button class="adm-filter active" data-filter="all">همه (<?= count($users) ?>)</button>
+          <button class="adm-filter active" data-filter="all">همه (<?= fa(count($users)) ?>)</button>
           <button class="adm-filter" data-filter="online">آنلاین</button>
           <button class="adm-filter" data-filter="admin">ادمین</button>
           <button class="adm-filter" data-filter="vip">VIP</button>
@@ -320,7 +360,7 @@ function adm_s(string $k, string $d=''): string { return site_setting($k,$d); }
               <div class="uc-name <?= $u['is_admin'] ? 'is-admin' : ($u['is_vip'] ? 'is-vip' : '') ?>">
                 <?= $uName ?>
               </div>
-              <div class="uc-sub">@<?= h($u['username']) ?> · #<?= $u['id'] ?></div>
+              <div class="uc-sub">@<?= h($u['username']) ?> · #<?= fa($u['id']) ?></div>
               <div class="uc-badges">
                 <?php $lvl = (int)($u['admin_level'] ?? 0); if ($lvl < 1 && !empty($u['is_admin'])) $lvl = 1; ?>
                 <?php if ($lvl >= 2): ?><span class="ub owner-b">👑 سازنده</span>
@@ -330,7 +370,7 @@ function adm_s(string $k, string $d=''): string { return site_setting($k,$d); }
                 <?php if ($u['is_online']): ?><span class="ub on-b">● آنلاین</span><?php endif; ?>
               </div>
             </div>
-            <div class="uc-last"><?= $u['last_active'] ? h(date('H:i', strtotime($u['last_active']))) : '—' ?></div>
+            <div class="uc-last"><?= $u['last_active'] ? fa(date('H:i', strtotime($u['last_active']))) : '—' ?></div>
           </div>
 
           <div class="uc-actions">
@@ -376,15 +416,24 @@ function adm_s(string $k, string $d=''): string { return site_setting($k,$d); }
         </form>
       </div>
 
+      <div class="adm-bulkbar" id="room-bulk-bar" hidden>
+        <span class="bulk-count"><b id="room-bulk-n">0</b> گروه انتخاب شده</span>
+        <div class="bulk-actions">
+          <button class="adm-btn-sm danger" onclick="bulkDeleteRooms()">❌ حذف گروه‌های انتخاب‌شده</button>
+          <button class="adm-btn-sm" onclick="roomBulkClear()">لغو انتخاب</button>
+        </div>
+      </div>
+
       <div class="room-list">
         <?php foreach ($rooms as $r): ?>
         <div class="room-row">
+          <input type="checkbox" class="room-check" data-rid="<?= (int)$r['id'] ?>">
           <div class="room-icon">🏠</div>
           <div class="room-info">
             <div class="room-name"><?= h($r['name']) ?></div>
             <div class="room-meta">
-              <span>👥 <?= $r['member_count'] ?> عضو</span>
-              <span>💬 <?= $r['msg_count'] ?> پیام</span>
+              <span>👥 <?= fa($r['member_count']) ?> عضو</span>
+              <span>💬 <?= fa($r['msg_count']) ?> پیام</span>
               <?php if ($r['password_hash']): ?><span>🔒 رمزدار</span><?php endif; ?>
               <?php if ($r['creator']): ?><span>👤 <?= h($r['creator']) ?></span><?php endif; ?>
             </div>
@@ -419,8 +468,8 @@ function adm_s(string $k, string $d=''): string { return site_setting($k,$d); }
             <?php foreach ($busyIps as $b): ?>
               <tr>
                 <td><code><?= h((string)$b['ip']) ?></code></td>
-                <td><span class="ub <?= (int)$b['c'] >= 5 ? 'ban-b' : 'vip-b' ?>"><?= (int)$b['c'] ?></span></td>
-                <td><?= h(date('Y/m/d H:i', strtotime((string)$b['last_at']))) ?></td>
+                <td><span class="ub <?= (int)$b['c'] >= 5 ? 'ban-b' : 'vip-b' ?>"><?= fa((int)$b['c']) ?></span></td>
+                <td><?= fa(date('Y/m/d H:i', strtotime((string)$b['last_at']))) ?></td>
                 <td><button class="adm-btn-sm" onclick="selectFromIp(<?= h(json_encode($b['ip'])) ?>)">انتخاب همه در فهرست کاربران</button></td>
               </tr>
             <?php endforeach; ?>
@@ -442,8 +491,8 @@ function adm_s(string $k, string $d=''): string { return site_setting($k,$d); }
               <tr>
                 <td><?= h((string)$sg['username']) ?><?= $sg['user_id'] ? '' : ' <span class="adm-hint">(حذف‌شده)</span>' ?></td>
                 <td><code><?= h((string)$sg['ip']) ?></code></td>
-                <td><?= (int)$sg['ip_total'] ?></td>
-                <td><?= h(date('Y/m/d H:i', strtotime((string)$sg['created_at']))) ?></td>
+                <td><?= fa((int)$sg['ip_total']) ?></td>
+                <td><?= fa(date('Y/m/d H:i', strtotime((string)$sg['created_at']))) ?></td>
               </tr>
             <?php endforeach; ?>
             </tbody>
@@ -464,11 +513,11 @@ function adm_s(string $k, string $d=''): string { return site_setting($k,$d); }
             <tbody>
             <?php foreach ($adminLog as $al): ?>
               <tr>
-                <td><?= h(date('m/d H:i', strtotime((string)$al['created_at']))) ?></td>
+                <td><?= fa(date('m/d H:i', strtotime((string)$al['created_at']))) ?></td>
                 <td><b><?= h((string)($al['admin_name'] ?: '—')) ?></b></td>
                 <td><?= h($actionLabels[$al['action']] ?? (string)$al['action']) ?></td>
                 <td><?= h((string)($al['target_name'] ?: ($al['target_user_id'] ? '#'.$al['target_user_id'] : '—'))) ?></td>
-                <td class="adm-hint"><?= h((string)($al['detail'] ?? '')) ?></td>
+                <td class="adm-hint"><?= fa(h((string)($al['detail'] ?? ''))) ?></td>
                 <td><code><?= h((string)($al['ip'] ?? '')) ?></code></td>
               </tr>
             <?php endforeach; ?>
@@ -484,32 +533,103 @@ function adm_s(string $k, string $d=''): string { return site_setting($k,$d); }
         <button class="adm-btn-sm danger" onclick="clearCallLogs()">🗑 پاک کردن لاگ</button>
       </div>
 
+      <div class="stat-row" style="margin-bottom:16px">
+        <div class="stat-card blue">
+          <div class="stat-icon">📞</div>
+          <div class="stat-val"><?= fa((int)$callStats['total']) ?></div>
+          <div class="stat-lbl">تماس در ۳۰ روز</div>
+        </div>
+        <div class="stat-card green">
+          <div class="stat-icon">✅</div>
+          <div class="stat-val"><?= fa((int)$callStats['answered']) ?></div>
+          <div class="stat-lbl">پاسخ داده‌شده</div>
+        </div>
+        <div class="stat-card purple">
+          <div class="stat-icon">⏱</div>
+          <div class="stat-val"><?= fa((int)round(((int)$callStats['talk_secs']) / 60)) ?></div>
+          <div class="stat-lbl">دقیقه گفتگو</div>
+        </div>
+      </div>
+
       <?php if ($callLogs): ?>
-      <div class="adm-card" style="padding:0;overflow:hidden">
-        <table class="adm-tbl">
+      <div class="adm-card">
+        <table class="adm-table">
           <thead>
-            <tr><th>تماس‌گیرنده</th><th>دریافت‌کننده</th><th>نوع</th><th>زمان</th></tr>
+            <tr><th>تماس‌گیرنده</th><th>دریافت‌کننده</th><th>وضعیت</th><th>مدت</th><th>زمان</th></tr>
           </thead>
           <tbody>
-          <?php foreach ($callLogs as $cl): ?>
+          <?php foreach ($callLogs as $cl):
+            [$label, $cls] = $callStatus[$cl['status']] ?? [(string)$cl['status'], ''];
+          ?>
             <tr>
-              <td><code class="adm-code"><?= h($cl['caller_name'] ?? '—') ?></code></td>
-              <td><code class="adm-code"><?= h($cl['receiver_name'] ?? '—') ?></code></td>
-              <td><?= $cl['type'] === 'offer' ? '📞 شروع' : h($cl['type']) ?></td>
-              <td class="adm-muted"><?= h(date('H:i d/m', strtotime($cl['created_at']))) ?></td>
+              <td><?= h((string)($cl['caller_name'] ?? '—')) ?></td>
+              <td><?= h((string)($cl['receiver_name'] ?? '—')) ?></td>
+              <td>
+                <span class="ub <?= $cls ?>"><?= h($label) ?></span>
+                <?php if (!empty($cl['is_video'])): ?><span class="ub vip-b">تصویری</span><?php endif; ?>
+              </td>
+              <td><?= h($fmtDuration($cl['duration_seconds'] === null ? null : (int)$cl['duration_seconds'])) ?></td>
+              <td class="adm-hint"><?= fa(date('Y/m/d H:i', strtotime((string)$cl['started_at']))) ?></td>
             </tr>
           <?php endforeach; ?>
           </tbody>
         </table>
       </div>
       <?php else: ?>
-        <div class="adm-empty">لاگی وجود ندارد.</div>
+        <div class="adm-empty">
+          هنوز تماسی ثبت نشده.
+          <div class="adm-hint" style="margin-top:6px">
+            تاریخچه از این پس ثبت می‌شود. پیش از این، جدول سیگنال هر چند ثانیه
+            خالی می‌شد و به همین دلیل این بخش همیشه خالی بود.
+          </div>
+        </div>
       <?php endif; ?>
     </section>
 
     <!-- ════════ تنظیمات ════════ -->
     <section id="s-settings" class="adm-sec">
       <div class="adm-sec-title">⚙️ تنظیمات سایت</div>
+
+      <div class="adm-card" style="margin-bottom:16px">
+        <div class="adm-card-title">📄 تنظیمات فایل — فقط خواندنی</div>
+        <p class="adm-hint" style="margin-top:0;margin-bottom:10px">
+          این‌ها از فایل تنظیمات خوانده می‌شوند و از این‌جا قابل تغییر نیستند.
+          برای عوض کردنشان همان یک فایل را ویرایش کن. کلیدها و رمزها عمداً نشان داده نمی‌شوند.
+        </p>
+        <table class="adm-table">
+          <tbody>
+            <tr><td>نام سایت</td>            <td><?= h(SITE_NAME) ?></td></tr>
+            <tr><td>نشانی سایت</td>          <td><code><?= h(SITE_URL ?: '—') ?></code></td></tr>
+            <tr><td>گروه پیش‌فرض</td>        <td><?= h(DEFAULT_ROOM_NAME) ?></td></tr>
+            <tr><td>سقف تلاش ورود</td>       <td><?= fa(RATE_LIMIT_MAX_ATTEMPTS) ?> بار در <?= fa((int)round(RATE_LIMIT_WINDOW_SEC / 60)) ?> دقیقه</td></tr>
+            <tr><td>مدت قفل شدن</td>         <td><?= fa((int)round(RATE_LIMIT_LOCKOUT_SEC / 60)) ?> دقیقه</td></tr>
+            <tr><td>سقف ساخت حساب</td>       <td><?= REGISTER_MAX_PER_IP_DAY > 0 ? fa(REGISTER_MAX_PER_IP_DAY) . ' حساب از هر نشانی در شبانه‌روز' : 'بدون سقف' ?></td></tr>
+            <tr><td>حداقل طول رمز</td>       <td><?= fa(REGISTER_MIN_PASSWORD) ?> کاراکتر (ثبت‌نام) · <?= fa(ADMIN_SET_MIN_PASSWORD) ?> کاراکتر (توسط مدیر)</td></tr>
+            <tr><td>حجم فایل</td>            <td><?= fa((int)(MAX_FILE_SIZE / 1048576)) ?> مگابایت · <?= fa((int)(MAX_FILE_SIZE_VIP / 1048576)) ?> مگابایت برای VIP</td></tr>
+            <tr><td>طول پیام</td>            <td><?= fa(MAX_MESSAGE_LEN) ?> کاراکتر</td></tr>
+            <tr><td>ماندگاری ورود</td>       <td><?= fa((int)(SESSION_LIFETIME / 86400)) ?> روز</td></tr>
+            <tr><td>رمزنگاری پیام خصوصی</td> <td><?= MSG_ENCRYPT_KEY !== '' ? '✅ روشن' : '⚠️ خاموش' ?></td></tr>
+            <tr><td>توکن امنیتی درخواست</td> <td><?= CSRF_PROTECTION_ENABLED ? '✅ روشن' : '⚠️ خاموش' ?></td></tr>
+            <tr><td>راه واسط</td>            <td><?= PROXY_SECRET !== '' ? 'باز (کلید تنظیم شده)' : '✅ بسته' ?></td></tr>
+            <tr><td>سرآیند نشانی کاربر</td>  <td><?= CLIENT_IP_HEADER !== '' ? h(CLIENT_IP_HEADER) : 'نشانی مستقیم' ?></td></tr>
+            <tr><td>تماس</td>                <td>
+              <?php if (!FEATURE_CALLS): ?>خاموش
+              <?php else:
+                $turn = (string)cfg('calls.turn_url', '');
+                $sec  = (string)cfg('calls.turn_secret', '');
+              ?>
+                روشن —
+                <?php if ($turn === ''): ?>
+                  <span style="color:#ff9b2e">فقط استان، بدون سرور ترن</span>
+                <?php else: ?>
+                  <code><?= h($turn) ?></code>
+                  <?= $sec !== '' ? '· رمز موقت' : '· رمز ثابت' ?>
+                <?php endif; ?>
+              <?php endif; ?>
+            </td></tr>
+          </tbody>
+        </table>
+      </div>
 
       <div class="settings-grid">
 
@@ -707,6 +827,12 @@ document.getElementById('modal-ok').addEventListener('click', () => { if(modalCa
 document.getElementById('adm-modal').addEventListener('click', e => { if(e.target===e.currentTarget) closeModal(); });
 
 // ── Admin Actions ──
+// حداقل طول رمز از تنظیمات سرور می‌آید، نه نوشته‌شده این‌جا
+const MIN_PW = parseInt(document.querySelector('meta[name="min-password"]')?.content || '8', 10);
+function faDigits(v) {
+  return String(v).replace(/[0-9]/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
+}
+
 function adminAct(action, uid, uname, extra) {
   if (action === 'ban_user') {
     openModal(`بن موقت: @${uname}`,
@@ -722,8 +848,13 @@ function adminAct(action, uid, uname, extra) {
     );
   } else if (action === 'change_password') {
     openModal(`تغییر رمز: @${uname}`,
-      `<input id="m-val" class="adm-input" type="password" placeholder="رمز جدید (حداقل ۴ کاراکتر)">`,
-      () => doAdminAction('change_password', uid, {new_password: document.getElementById('m-val').value})
+      `<input id="m-val" class="adm-input" type="password" minlength="${MIN_PW}"
+              placeholder="رمز جدید (حداقل ${faDigits(MIN_PW)} کاراکتر)">`,
+      () => {
+        const v = document.getElementById('m-val').value;
+        if (v.length < MIN_PW) { alert('رمز باید حداقل ' + faDigits(MIN_PW) + ' کاراکتر باشد.'); return false; }
+        return doAdminAction('change_password', uid, {new_password: v});
+      }
     );
   } else if (action === 'vip') {
     const isVip = extra === 1;
@@ -779,7 +910,7 @@ const bulkSel = new Set();
 function bulkRefresh() {
   const bar = document.getElementById('bulk-bar');
   const n   = document.getElementById('bulk-n');
-  if (n) n.textContent = bulkSel.size;
+  if (n) n.textContent = faDigits(bulkSel.size);
   if (bar) bar.hidden = bulkSel.size === 0;
   document.querySelectorAll('.uc-check').forEach(c => {
     const on = bulkSel.has(parseInt(c.dataset.uid, 10));
@@ -852,6 +983,49 @@ async function selectFromIp(ip) {
     document.querySelector('.adm-link[data-sec="s-users"]')?.click();
     bulkRefresh();
     document.getElementById('bulk-bar')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  } catch (err) { alert('خطای شبکه'); }
+}
+
+
+// ═══ انتخاب گروهی گروه‌ها ═══
+const roomSel = new Set();
+
+function roomBulkRefresh() {
+  const bar = document.getElementById('room-bulk-bar');
+  const n   = document.getElementById('room-bulk-n');
+  if (n) n.textContent = faDigits(roomSel.size);
+  if (bar) bar.hidden = roomSel.size === 0;
+  document.querySelectorAll('.room-check').forEach(c => {
+    const on = roomSel.has(parseInt(c.dataset.rid, 10));
+    c.checked = on;
+    c.closest('.room-row')?.classList.toggle('selected', on);
+  });
+}
+
+function roomBulkClear() { roomSel.clear(); roomBulkRefresh(); }
+
+document.addEventListener('change', e => {
+  if (e.target.classList?.contains('room-check')) {
+    const id = parseInt(e.target.dataset.rid, 10);
+    e.target.checked ? roomSel.add(id) : roomSel.delete(id);
+    roomBulkRefresh();
+  }
+});
+
+async function bulkDeleteRooms() {
+  if (!roomSel.size) return;
+  const ids = [...roomSel];
+  if (!confirm(`${ids.length} گروه حذف شود؟\n\nپیام‌ها و فایل‌های داخلشان هم پاک می‌شود و برگشت‌پذیر نیست.`)) return;
+
+  const fd = new FormData();
+  fd.append('action', 'bulk_delete_rooms');
+  fd.append('room_ids', ids.join(','));
+  fd.append('csrf', document.querySelector('meta[name="csrf-token"]').content);
+  try {
+    const r = await fetch('api/admin_action.php', { method: 'POST', body: fd });
+    const j = await r.json();
+    if (j.ok) { alert(j.message); location.reload(); }
+    else alert(j.error || 'خطا');
   } catch (err) { alert('خطای شبکه'); }
 }
 

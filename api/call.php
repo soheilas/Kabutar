@@ -21,9 +21,24 @@ try {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 } catch(Throwable $e) {}
 
-// پاک کردن سیگنال‌های قدیمی (بیشتر از ۳۰ ثانیه)
+// پاک کردن سیگنال‌های قدیمی (بیشتر از ۳۰ ثانیه).
+// این جدول عمداً گذراست — تاریخچه در call_log می‌ماند.
 try {
     $pdo->exec("DELETE FROM call_signals WHERE created_at < (NOW() - INTERVAL 30 SECOND)");
+} catch(Throwable $e) {}
+
+// تماس‌هایی که هیچ‌وقت تمام نشدند (مرورگر بسته شد، اینترنت قطع شد)
+// تا ابد در حالت «در حال زنگ» نمانند. گاه‌به‌گاه اجرا می‌شود.
+try {
+    if (random_int(1, 20) === 1) {
+        $pdo->exec("UPDATE call_log
+                       SET status = IF(answered_at IS NULL, 'missed', 'ended'),
+                           ended_at = COALESCE(ended_at, NOW()),
+                           duration_seconds = CASE WHEN answered_at IS NULL THEN 0
+                                                   ELSE TIMESTAMPDIFF(SECOND, answered_at, NOW()) END
+                     WHERE ended_at IS NULL
+                       AND started_at < (NOW() - INTERVAL 2 HOUR)");
+    }
 } catch(Throwable $e) {}
 
 if ($method === 'GET') {
@@ -117,7 +132,51 @@ if ($method === 'POST') {
         "INSERT INTO call_signals (caller_id, receiver_id, type, data) VALUES (?,?,?,?)"
     );
     $stmt->execute([$uid, $targetId, $type, $data]);
-    json_response(['ok' => true, 'id' => (int)$pdo->lastInsertId()]);
+    $signalId = (int)$pdo->lastInsertId();
+
+    // ── ثبت در تاریخچه ──
+    // جدول بالا گذرا است و چند ثانیه بعد پاک می‌شود؛ این‌جا می‌ماند.
+    try {
+        if ($type === 'offer') {
+            $isVideo = str_contains($data, '"video"') || str_contains($data, 'video=1') ? 1 : 0;
+            $pdo->prepare('INSERT INTO call_log (caller_id, receiver_id, is_video, status)
+                           VALUES (?,?,?,\'ringing\')')
+                ->execute([$uid, $targetId, $isVideo]);
+        } else {
+            // تازه‌ترین تماس باز میان این دو نفر را پیدا کن
+            $find = $pdo->prepare(
+                "SELECT id, answered_at FROM call_log
+                 WHERE ((caller_id=? AND receiver_id=?) OR (caller_id=? AND receiver_id=?))
+                   AND ended_at IS NULL
+                   AND started_at > (NOW() - INTERVAL 6 HOUR)
+                 ORDER BY id DESC LIMIT 1"
+            );
+            $find->execute([$uid, $targetId, $targetId, $uid]);
+            $call = $find->fetch();
+
+            if ($call) {
+                $callId = (int)$call['id'];
+                if ($type === 'answer') {
+                    $pdo->prepare("UPDATE call_log SET status='answered', answered_at=NOW()
+                                   WHERE id=? AND answered_at IS NULL")->execute([$callId]);
+                } elseif (in_array($type, ['hangup', 'reject', 'busy', 'missed'], true)) {
+                    // اگر جواب داده شده بود، تماس تمام‌شده است؛ وگرنه علتِ پایان همان نوع سیگنال است
+                    $status = $call['answered_at'] ? 'ended' : ($type === 'hangup' ? 'missed' : $type);
+                    $pdo->prepare(
+                        "UPDATE call_log
+                            SET status=?, ended_at=NOW(),
+                                duration_seconds = CASE WHEN answered_at IS NULL THEN 0
+                                                        ELSE TIMESTAMPDIFF(SECOND, answered_at, NOW()) END
+                          WHERE id=? AND ended_at IS NULL"
+                    )->execute([$status, $callId]);
+                }
+            }
+        }
+    } catch (\Throwable $e) {
+        // تاریخچه نباید جلوی برقراری تماس را بگیرد
+    }
+
+    json_response(['ok' => true, 'id' => $signalId]);
 }
 
 json_response(['ok' => false, 'error' => 'متد نامعتبر.'], 405);

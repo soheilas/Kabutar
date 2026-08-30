@@ -181,8 +181,12 @@ try {
         // ─── حذف لاگ تماس‌ها ───
         case 'clear_call_logs':
             if (!$isSuperAdmin) throw new RuntimeException('دسترسی ندارید.');
-            try { $pdo->exec('TRUNCATE TABLE call_signals'); } catch (\Throwable $e) {
-                $pdo->exec('DELETE FROM call_signals');
+            // هم تاریخچه، هم سیگنال‌های سرگردان
+            foreach (['call_log', 'call_signals'] as $tbl) {
+                try { $pdo->exec("TRUNCATE TABLE `$tbl`"); }
+                catch (\Throwable $e) {
+                    try { $pdo->exec("DELETE FROM `$tbl`"); } catch (\Throwable $e2) {}
+                }
             }
             admin_log('clear_call_logs');
             json_response(['ok' => true, 'message' => 'لاگ تماس‌ها پاک شد.']);
@@ -245,6 +249,36 @@ try {
             $stmt->execute([$ip]);
             $ids = array_map('intval', array_column($stmt->fetchAll(), 'user_id'));
             json_response(['ok' => true, 'ids' => $ids, 'count' => count($ids)]);
+
+
+        // ─── حذف چند گروه با هم ───
+        case 'bulk_delete_rooms':
+            $raw = $_POST['room_ids'] ?? '';
+            $ids = array_values(array_unique(array_filter(
+                array_map('intval', is_array($raw) ? $raw : explode(',', (string)$raw))
+            )));
+            if (!$ids) throw new RuntimeException('هیچ گروهی انتخاب نشده.');
+            if (count($ids) > 200) throw new RuntimeException('حداکثر ۲۰۰ گروه در هر بار.');
+
+            $done = 0;
+            foreach ($ids as $rid) {
+                // فایل‌های پیوست پیام‌های گروه را هم از دیسک پاک کن
+                $tk = $pdo->prepare('SELECT file_token FROM messages WHERE room_id=? AND file_token IS NOT NULL');
+                $tk->execute([$rid]);
+                $tokens = array_column($tk->fetchAll(), 'file_token');
+
+                $pdo->prepare('DELETE FROM messages WHERE room_id=?')->execute([$rid]);
+                $pdo->prepare('DELETE FROM room_members WHERE room_id=?')->execute([$rid]);
+                foreach (['room_roles', 'room_bans', 'room_typing'] as $tbl) {
+                    try { $pdo->prepare("DELETE FROM `$tbl` WHERE room_id=?")->execute([$rid]); }
+                    catch (\Throwable $e) {}
+                }
+                $pdo->prepare('DELETE FROM rooms WHERE id=?')->execute([$rid]);
+                foreach ($tokens as $t) delete_upload($t);
+                $done++;
+            }
+            admin_log('bulk_delete_rooms', 0, "{$done} گروه");
+            json_response(['ok' => true, 'message' => "حذف شد: {$done} گروه"]);
 
         default:
             throw new RuntimeException('عملیات نامعتبر.');

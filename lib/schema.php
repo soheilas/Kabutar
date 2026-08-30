@@ -10,7 +10,7 @@ declare(strict_types=1);
  * شماره‌ی ساختار. هر بار که جدول یا ستونی به این فایل اضافه شد،
  * این عدد را یکی زیاد کن تا مهاجرت دوباره اجرا شود.
  */
-const SCHEMA_VERSION = '3';
+const SCHEMA_VERSION = '4';
 
 /**
  * ساختار جدول‌ها را کامل می‌کند.
@@ -290,6 +290,27 @@ function auto_migrate(PDO $pdo): void {
             PRIMARY KEY (id),
             KEY idx_time (created_at),
             KEY idx_admin (admin_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+
+        // تاریخچه‌ی تماس‌ها.
+        // جدول call_signals عمداً گذرا است — call.php هر سیگنال قدیمی‌تر از
+        // ۳۰ ثانیه را پاک می‌کند. برای همین لاگ تماس پنل همیشه خالی بود.
+        // تاریخچه این‌جا می‌ماند و پاک نمی‌شود.
+        $pdo->exec("CREATE TABLE IF NOT EXISTS call_log (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            caller_id INT UNSIGNED NOT NULL,
+            receiver_id INT UNSIGNED NOT NULL,
+            is_video TINYINT(1) NOT NULL DEFAULT 0,
+            status ENUM('ringing','answered','rejected','missed','busy','ended') NOT NULL DEFAULT 'ringing',
+            started_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            answered_at DATETIME NULL,
+            ended_at DATETIME NULL,
+            duration_seconds INT UNSIGNED NULL,
+            PRIMARY KEY (id),
+            KEY idx_started (started_at),
+            KEY idx_caller (caller_id, started_at),
+            KEY idx_receiver (receiver_id, started_at)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
         // ── جا انداختن سطح دسترسی روی داده‌ی موجود ──
