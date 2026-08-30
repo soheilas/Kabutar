@@ -106,17 +106,16 @@
 
 روی هر عنوان کلیک کن تا تصویرش باز شود.
 
-</div>
+<details>
+<summary><b>📊 پنل مدیریت — داشبورد</b></summary>
 
 <div align="center">
-
-**پنل مدیریت — داشبورد**
 
 ![داشبورد](docs/screenshots/admin.png)
 
 </div>
 
-<div dir="rtl" align="right">
+</details>
 
 <details>
 <summary><b>👥 مدیریت کاربران — با انتخاب گروهی</b></summary>
@@ -441,11 +440,8 @@ A self-hosted alternative to commercial chat services.
 
 </sub>
 
-<sub>
+`persian chat` · `farsi messenger` · `rtl chat` · `php chat script`
 
-<code>persian chat</code> · <code>farsi messenger</code> · <code>rtl chat</code> · <code>php chat script</code><br>
-<code>self-hosted chat</code> · <code>shared hosting</code> · <code>webrtc</code> · <code>chat room</code>
-
-</sub>
+`self-hosted chat` · `shared hosting` · `webrtc` · `chat room`
 
 </div>
