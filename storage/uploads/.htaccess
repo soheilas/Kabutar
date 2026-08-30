@@ -1,0 +1,7 @@
+# Direct access forbidden. Files are served via download.php / avatar.php only.
+Require all denied
+<IfModule !mod_authz_core.c>
+  Order allow,deny
+  Deny from all
+</IfModule>
+php_flag engine off

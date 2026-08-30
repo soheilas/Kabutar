@@ -1,0 +1,16 @@
+# تنظیمات این نصب — هرگز commit نشود
+config.local.php
+chat-config.php
+
+# فایل‌های کاربران
+storage/uploads/*
+!storage/uploads/.gitkeep
+!storage/uploads/.htaccess
+
+# لاگ‌ها و موقتی‌ها
+error_log
+*.log
+*.bak
+*.zip
+*.tar.gz
+.DS_Store

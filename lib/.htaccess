@@ -1,0 +1,6 @@
+# کتابخانه‌ها فقط از داخل برنامه صدا زده می‌شوند
+Require all denied
+<IfModule !mod_authz_core.c>
+  Order allow,deny
+  Deny from all
+</IfModule>

@@ -1,0 +1,11 @@
+# فایل‌هایی که هرگز نباید مستقیم خوانده شوند
+<FilesMatch "^(config\.local\.php|chat-config\.php|.*\.sql|.*\.zip|.*\.tar\.gz|.*\.bak|error_log)$">
+  Require all denied
+  <IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+  </IfModule>
+</FilesMatch>
+
+# فهرست پوشه‌ها نمایش داده نشود
+Options -Indexes
