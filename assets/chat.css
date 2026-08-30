@@ -16,7 +16,7 @@
 
 body, button, input, select, textarea {
   margin: 0;
-  font-family: "IranYekanX", "IRANYekanX", "IranYekanx", "Segoe UI", Tahoma, Arial, "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+  font-family: 'IRANYekanX', 'Vazirmatn', 'Segoe UI', Tahoma, Arial, 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
   color: var(--ink);
   background: radial-gradient(circle at 20% 0%, #16263a 0%, #0b121a 48%, #090f16 100%);
   direction: rtl;

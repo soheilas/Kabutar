@@ -22,18 +22,18 @@ $stickerFiles = array_values($stickerFiles);
 <html lang="fa" dir="rtl">
 <head>
   <meta charset="utf-8">
-  <title>اتاق گفتگو</title>
+  <title><?= h(SITE_NAME) ?></title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#0c1520">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="پیام‌رسان">
-  <link rel="manifest" href="manifest.json">
+  <link rel="manifest" href="manifest.php">
   <link rel="icon" type="image/png" href="favicon.png">
   <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
   <meta name="csrf-token" content="<?= h($csrf) ?>">
-  <link rel="stylesheet" href="assets/fonts/IranYekanx/fontiran.css?v=<?= h(asset_version('assets/fonts/IranYekanx/fontiran.css')) ?>">
+  <link rel="stylesheet" href="assets/fonts/fonts.css?v=<?= h(asset_version('assets/fonts/fonts.css')) ?>">
   <link rel="stylesheet" href="assets/chat.css?v=<?= h(asset_version('assets/chat.css')) ?>">
 </head>
 <body
@@ -135,8 +135,8 @@ $stickerFiles = array_values($stickerFiles);
           <!-- منوی اتاق -->
           <button id="room-password-btn" class="hdr-action-btn" type="button" style="display:none">🔒 رمز</button>
           <button id="room-invite-btn"   class="hdr-action-btn" type="button" style="display:none">🔗 دعوت</button>
-          <button id="room-clear-btn"    class="hdr-action-btn danger" type="button" style="display:none">🗑️</button>
-          <button id="room-leave-btn"    class="hdr-action-btn danger" type="button" style="display:none">خروج</button>
+          <button id="room-clear-btn"    class="hdr-action-btn danger" type="button" style="display:none" title="همه‌ی پیام‌های این گروه را پاک کن">🗑️ پاک کردن</button>
+          <button id="room-leave-btn"    class="hdr-action-btn danger" type="button" style="display:none" title="از این گروه خارج شو">🚪 ترک گروه</button>
 
           <!-- موبایل -->
           <button id="settings-toggle" class="hdr-icon-btn settings-toggle mobile-only" type="button" title="تنظیمات">

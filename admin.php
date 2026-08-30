@@ -192,6 +192,7 @@ function adm_s(string $k, string $d=''): string { return site_setting($k,$d); }
 <meta name="csrf-token" content="<?= h($csrf_token) ?>">
 <meta name="min-password" content="<?= (int)ADMIN_SET_MIN_PASSWORD ?>">
 <title>پنل مدیریت</title>
+<link rel="stylesheet" href="assets/fonts/fonts.css?v=<?= h(asset_version('assets/fonts/fonts.css')) ?>">
 <link rel="stylesheet" href="assets/admin.css?v=<?= h(asset_version('assets/admin.css')) ?>">
 <link rel="stylesheet" href="assets/admin-controls.css?v=<?= h(asset_version('assets/admin-controls.css')) ?>">
 </head>

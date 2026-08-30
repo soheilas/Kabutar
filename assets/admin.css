@@ -24,7 +24,7 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
-  font-family: "IranYekanX","IRANYekanX",system-ui,sans-serif;
+  font-family: 'IRANYekanX', 'Vazirmatn', 'Segoe UI', Tahoma, Arial, sans-serif;
   background: var(--bg);
   color: var(--ink);
   direction: rtl;

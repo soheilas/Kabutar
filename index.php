@@ -134,16 +134,16 @@ $fa = static fn(int $n): string => strtr((string)$n, ['0'=>'۰','1'=>'۱','2'=>'
 <html lang="fa" dir="rtl">
 <head>
   <meta charset="utf-8">
-  <title>گفتگو هوشمند — ورود</title>
+  <title><?= h(SITE_NAME) ?> — ورود</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#080e17">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="پیام‌رسان">
-  <link rel="manifest" href="manifest.json">
+  <link rel="manifest" href="manifest.php">
   <link rel="icon" type="image/png" href="favicon.png">
   <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
-  <link rel="stylesheet" href="assets/fonts/IranYekanx/fontiran.css?v=<?= $v('assets/fonts/IranYekanx/fontiran.css') ?>">
+  <link rel="stylesheet" href="assets/fonts/fonts.css?v=<?= $v('assets/fonts/fonts.css') ?>">
   <link rel="stylesheet" href="assets/auth.css?v=<?= $v('assets/auth.css') ?>">
 </head>
 <body>
@@ -164,8 +164,8 @@ $fa = static fn(int $n): string => strtr((string)$n, ['0'=>'۰','1'=>'۱','2'=>'
             </linearGradient></defs>
           </svg>
         </div>
-        <h1 class="auth-title">گفتگو هوشمند</h1>
-        <p class="auth-subtitle">پیام‌رسان امن و خصوصی</p>
+        <h1 class="auth-title"><?= h(SITE_NAME) ?></h1>
+        <p class="auth-subtitle"><?= h(cfg('site.tagline', 'پیام‌رسان امن و خصوصی')) ?></p>
       </div>
 
       <?php if ($error): ?>

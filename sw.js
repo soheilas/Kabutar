@@ -7,7 +7,7 @@ const STATIC = [
   '/assets/chat.css',
   '/assets/auth.css',
   '/assets/fonts/IranYekanx/fontiran.css',
-  '/manifest.json'
+  'manifest.php'
 ];
 
 self.addEventListener('install', e => {

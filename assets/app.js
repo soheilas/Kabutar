@@ -1,5 +1,8 @@
 (() => {
   const roomList = document.getElementById('room-list');
+  // این تعریف جا افتاده بود؛ سه جا استفاده می‌شد ولی هرگز مقدار نمی‌گرفت،
+  // برای همین فهرست «گفتگوهای اخیر» همیشه خالی می‌ماند.
+  const recentChatsList = document.getElementById('recent-chats-list');
   const userList = document.getElementById('user-list');
   const chatTitle = document.getElementById('chat-title');
   const messagesEl = document.getElementById('messages');

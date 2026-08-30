@@ -18,6 +18,7 @@ return [
     'site' => [
         'name'         => 'گفتگو هوشمند',
         'short_name'   => 'پیام‌رسان',
+        'tagline'      => 'پیام‌رسان امن و خصوصی',
         'url'          => 'https://example.com',
         'theme_color'  => '#080e17',
         'default_room' => 'عمومی',

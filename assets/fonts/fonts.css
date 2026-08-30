@@ -1,0 +1,66 @@
+/* ═══════════════════════════════════════════════════════════════
+   قلم‌ها
+   ───────────────────────────────────────────────────────────────
+   قلم پیش‌فرض وزیرمتن است — آزاد و با پروانه‌ی باز، پس می‌شود
+   همراه پروژه منتشرش کرد.
+
+   اگر پروانه‌ی «ایران‌یکان» را داری و ظاهرش را ترجیح می‌دهی،
+   فایل‌هایش را در assets/fonts/IranYekanx/ بگذار؛ چون در ابتدای
+   فهرست قلم‌هاست، خودکار جای وزیرمتن را می‌گیرد. آن قلم تجاری
+   است و نباید در مخزن عمومی گذاشته شود.
+   ═══════════════════════════════════════════════════════════════ */
+
+@font-face {
+  font-family: 'Vazirmatn';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('Vazirmatn/Vazirmatn-Regular.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Vazirmatn';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('Vazirmatn/Vazirmatn-Medium.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Vazirmatn';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('Vazirmatn/Vazirmatn-Bold.woff2') format('woff2');
+}
+
+/* ایران‌یکان فقط اگر خودت فایل‌هایش را گذاشته باشی بارگذاری می‌شود.
+   اگر نگذاشته باشی مرورگر بی‌صدا ردش می‌کند و سراغ وزیرمتن می‌رود. */
+@font-face {
+  font-family: 'IRANYekanX';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('IranYekanx/woff2/IRANYekanX-Regular.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'IRANYekanX';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('IranYekanx/woff2/IRANYekanX-Medium.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'IRANYekanX';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('IranYekanx/woff2/IRANYekanX-Bold.woff2') format('woff2');
+}
+
+:root {
+  --font-fa: 'IRANYekanX', 'Vazirmatn', 'Segoe UI', Tahoma, Arial,
+             'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
+}
