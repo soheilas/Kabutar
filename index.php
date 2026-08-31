@@ -73,9 +73,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 } else {
                     try {
                         $pdo->beginTransaction();
+
+                        // اولین حساب سایت، سازنده می‌شود. بدون این، تازه‌نصب‌کننده
+                        // مجبور بود دستی در پایگاه داده دستور بزند تا مدیر شود.
+                        $isFirstAccount = (int)$pdo->query('SELECT COUNT(*) FROM users')->fetchColumn() === 0;
+
                         $hash = password_hash($password, PASSWORD_DEFAULT);
-                        $stmt = $pdo->prepare('INSERT INTO users (username, password_hash) VALUES (?, ?)');
-                        $stmt->execute([$username, $hash]);
+                        $stmt = $pdo->prepare('INSERT INTO users (username, password_hash, is_admin, admin_level)
+                                               VALUES (?, ?, ?, ?)');
+                        $stmt->execute([
+                            $username, $hash,
+                            $isFirstAccount ? 1 : 0,
+                            $isFirstAccount ? ADMIN_LEVEL_OWNER : ADMIN_LEVEL_NONE,
+                        ]);
                         $userId = (int)$pdo->lastInsertId();
                         // اگه گروه عمومی وجود داشت، عضوش کن (بدون auto-create)
                         try {

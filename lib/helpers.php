@@ -10,14 +10,84 @@ declare(strict_types=1);
 function db(): PDO {
     static $pdo = null;
     if ($pdo instanceof PDO) return $pdo;
+
     $dsn = 'mysql:host=' . DB_HOST . ';dbname=' . DB_NAME . ';charset=' . DB_CHARSET;
-    $pdo = new PDO($dsn, DB_USER, DB_PASS, [
-        PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-        PDO::ATTR_EMULATE_PREPARES   => false,
-    ]);
+    try {
+        $pdo = new PDO($dsn, DB_USER, DB_PASS, [
+            PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_EMULATE_PREPARES   => false,
+        ]);
+    } catch (\PDOException $e) {
+        // بدون این، پی‌اچ‌پی رد پشته را چاپ می‌کند که مسیر سرور و نام
+        // کاربر پایگاه داده را به هر بازدیدکننده‌ای نشان می‌دهد.
+        db_connection_failed($e);
+    }
+
     auto_migrate($pdo);
     return $pdo;
+}
+
+/**
+ * صفحه‌ی خطای اتصال — راهنمای عملی می‌دهد بدون اینکه چیزی لو برود.
+ * جزئیات فنی فقط در لاگ خطای سرور می‌نشیند.
+ */
+function db_connection_failed(\PDOException $e): void {
+    error_log('Kabutar DB connection failed: ' . $e->getMessage());
+
+    $code = 0;
+    if (preg_match('/\[(\d{4})\]/', $e->getMessage(), $m)) {
+        $code = (int)$m[1];
+    }
+
+    $hints = [
+        1045 => ['نام کاربری یا رمز پایگاه داده اشتباه است',
+                 'مقدار <code>user</code> و <code>pass</code> را در فایل تنظیمات با آنچه در پنل هاست ساختی مقایسه کن.'],
+        1044 => ['کاربر پایگاه داده به این پایگاه داده دسترسی ندارد',
+                 'در پنل هاست، کاربر را به پایگاه داده وصل کن و همه‌ی دسترسی‌ها را بده. روی بعضی پنل‌ها نام واقعی پیشوند دارد.'],
+        1049 => ['پایگاه داده‌ای با این نام پیدا نشد',
+                 'مقدار <code>name</code> را بررسی کن. بعضی پنل‌ها به نامی که می‌نویسی پیشوند اضافه می‌کنند.'],
+        2002 => ['سرور پایگاه داده در دسترس نیست',
+                 'مقدار <code>host</code> را بررسی کن. روی بیشتر هاست‌ها <code>localhost</code> درست است.'],
+    ];
+    $hints[2003] = $hints[2002];
+
+    [$title, $hint] = $hints[$code] ?? [
+        'اتصال به پایگاه داده برقرار نشد',
+        'مقادیر بخش <code>db</code> در فایل تنظیمات را بررسی کن.',
+    ];
+
+    $codeText = $code ? ' (کد ' . $code . ')' : '';
+
+    http_response_code(500);
+    header('Content-Type: text/html; charset=utf-8');
+    echo <<<HTML
+<!doctype html><html dir="rtl" lang="fa"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>خطای اتصال به پایگاه داده</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#080e17;color:#e6edf4;font-family:system-ui,'Segoe UI',Tahoma,sans-serif;
+       min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;line-height:1.9}
+  .box{max-width:520px;background:#0f1c2a;border:1px solid #1e3248;border-radius:16px;padding:32px}
+  .icon{font-size:44px;margin-bottom:14px}
+  h1{font-size:20px;font-weight:800;margin-bottom:10px;color:#ff9b2e}
+  p{color:#a8c6e0;font-size:14px;margin-bottom:14px}
+  code{background:#0b1520;padding:2px 7px;border-radius:5px;color:#8fd0ff;
+       font-family:ui-monospace,Consolas,monospace;font-size:13px;direction:ltr;display:inline-block}
+  .file{background:#0b1520;border-radius:10px;padding:12px 14px;font-size:13px;color:#7fa3c0}
+  .foot{margin-top:18px;font-size:12px;color:#5c7c96}
+</style></head><body>
+<div class="box">
+  <div class="icon">🔌</div>
+  <h1>{$title}{$codeText}</h1>
+  <p>{$hint}</p>
+  <div class="file">فایل تنظیمات: <code>config.local.php</code> یا <code>chat-config.php</code></div>
+  <p class="foot">جزئیات فنی در لاگ خطای سرور ثبت شد.</p>
+</div>
+</body></html>
+HTML;
+    exit;
 }
 
 function h(string $value): string {

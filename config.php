@@ -72,7 +72,16 @@ define('ASSET_VERSION', (string)cfg('asset_version', '1'));
 define('UPLOAD_DIR',    __DIR__ . '/storage/uploads');
 define('AVATAR_URL',    'assets/avatar3.svg');
 
-// ── ۳. نشست ────────────────────────────────────────────────────
+// ── ۳. نمایش خطا ───────────────────────────────────────────────
+// در حالت عادی خطاها روی صفحه چاپ نمی‌شوند — پیام خطای پی‌اچ‌پی
+// مسیر سرور، نام کاربر پایگاه داده و ساختار کد را لو می‌دهد.
+// برای عیب‌یابی، در فایل تنظیمات 'debug' => true بگذار.
+define('APP_DEBUG', (bool)cfg('debug', false));
+error_reporting(E_ALL);
+ini_set('display_errors', APP_DEBUG ? '1' : '0');
+ini_set('log_errors', '1');
+
+// ── ۴. نشست ────────────────────────────────────────────────────
 if (session_status() === PHP_SESSION_NONE) {
     $isSecure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
              || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
@@ -89,7 +98,7 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// ── ۴. بارگذاری کتابخانه‌ها ────────────────────────────────────
+// ── ۵. بارگذاری کتابخانه‌ها ────────────────────────────────────
 require_once __DIR__ . '/lib/helpers.php';
 require_once __DIR__ . '/lib/security.php';
 require_once __DIR__ . '/lib/schema.php';
