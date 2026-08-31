@@ -21,8 +21,21 @@ function app_config(): array {
         $loaded = require $candidate;
         if (is_array($loaded)) { return $cache = $loaded; }
     }
+    // تنظیماتی نیست — یعنی هنوز نصب نشده. اگر نصب‌کننده هست، ببرش آن‌جا.
+    $installer = __DIR__ . '/install.php';
+    $self      = basename((string)($_SERVER['SCRIPT_NAME'] ?? ''));
+    if (is_file($installer) && $self !== 'install.php' && !headers_sent()) {
+        header('Location: install.php');
+        exit;
+    }
+
     http_response_code(500);
-    exit('فایل تنظیمات پیدا نشد. config.sample.php را به config.local.php کپی کن.');
+    header('Content-Type: text/html; charset=utf-8');
+    exit('<!doctype html><meta charset="utf-8"><div dir="rtl" style="font-family:system-ui,Tahoma;'
+       . 'background:#080e17;color:#e6edf4;padding:40px;line-height:2">'
+       . '<h2 style="color:#ff9b2e">فایل تنظیمات پیدا نشد</h2>'
+       . '<p>یا <code>install.php</code> را باز کن، یا <code>config.sample.php</code> را '
+       . 'به <code>config.local.php</code> کپی کن و پرش کن.</p></div>');
 }
 
 /** خواندن یک تنظیم با مسیر نقطه‌ای، مثل cfg('db.host') */

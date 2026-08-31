@@ -24,6 +24,14 @@ if (!empty($_GET['invite'])) {
 }
 
 $csrf  = csrf_token();
+// نصب تازه: تا وقتی هیچ حسابی نیست، به صفحه‌ی راه‌اندازی برو
+try {
+    if ((int)db()->query('SELECT COUNT(*) FROM users')->fetchColumn() === 0) {
+        header('Location: install.php');
+        exit;
+    }
+} catch (\Throwable $e) {}
+
 $error = '';
 if (!empty($_GET['banned'])) {
     $error = 'حساب شما مسدود شده است. برای اطلاعات بیشتر با مدیر تماس بگیرید.';
