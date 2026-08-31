@@ -93,13 +93,63 @@ function already_installed(): bool {
     }
 }
 
-function db_error_hint(PDOException $ex): string {
-    $code = 0;
-    if (preg_match('/\[(\d{4})\]/', $ex->getMessage(), $m)) $code = (int)$m[1];
+function pdo_error_code(PDOException $ex): int {
+    return preg_match('/\[(\d{4})\]/', $ex->getMessage(), $m) ? (int)$m[1] : 0;
+}
+
+/**
+ * فهرست پایگاه داده‌هایی که این کاربر می‌بیند.
+ *
+ * خطای ۱۰۴۴ دو معنی دارد و از بیرون شبیه هم‌اند: یا کاربر به آن پایگاه
+ * داده وصل نشده، یا آن پایگاه داده با آن نام اصلاً وجود ندارد. به‌جای
+ * حدس زدن، همان‌جا وصل می‌شویم بدون انتخاب پایگاه داده و می‌پرسیم چه
+ * چیزی در دسترس است. روی لینوکس نام‌ها به بزرگی و کوچکی حروف حساس‌اند،
+ * پس اختلاف حرف بزرگ و کوچک هم همین‌جا معلوم می‌شود.
+ */
+function visible_databases(string $host, string $user, string $pass): ?array {
+    try {
+        $pdo = new PDO('mysql:host=' . $host, $user, $pass,
+                       [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+        $all = $pdo->query('SHOW DATABASES')->fetchAll(PDO::FETCH_COLUMN);
+        $skip = ['information_schema', 'performance_schema', 'mysql', 'sys'];
+        return array_values(array_filter($all, static fn($d) => !in_array($d, $skip, true)));
+    } catch (\Throwable $ex) {
+        return null;
+    }
+}
+
+function db_error_hint(PDOException $ex, string $host = '', string $user = '',
+                       string $pass = '', string $wanted = ''): string {
+    $code = pdo_error_code($ex);
+
+    // برای ۱۰۴۴ و ۱۰۴۹ می‌شود دقیق‌تر راهنمایی کرد
+    if (($code === 1044 || $code === 1049) && $host !== '') {
+        $list = visible_databases($host, $user, $pass);
+
+        if ($list !== null && $list !== []) {
+            // شاید فقط حرف بزرگ و کوچک فرق دارد
+            foreach ($list as $name) {
+                if (strcasecmp($name, $wanted) === 0 && $name !== $wanted) {
+                    return 'نام پایگاه داده «' . e($wanted) . '» است ولی روی سرور «' . e($name)
+                         . '» ساخته شده. نام‌ها به بزرگی و کوچکی حروف حساس‌اند — همان را دقیقاً بنویس.';
+                }
+            }
+            return 'پایگاه داده‌ای به نام «' . e($wanted) . '» برای این کاربر پیدا نشد. '
+                 . 'این کاربر به این‌ها دسترسی دارد: ' . e(implode('، ', array_slice($list, 0, 8)))
+                 . (count($list) > 8 ? ' و چند تای دیگر' : '') . '.';
+        }
+
+        if ($list !== null) {
+            return 'این کاربر به هیچ پایگاه داده‌ای دسترسی ندارد. در پنل هاست، کاربر را به '
+                 . 'پایگاه داده وصل کن و همه‌ی دسترسی‌ها را بده.';
+        }
+    }
+
     return [
         1045 => 'نام کاربری یا رمز پایگاه داده اشتباه است.',
-        1044 => 'این کاربر به آن پایگاه داده دسترسی ندارد. در پنل هاست وصلش کن و همه‌ی دسترسی‌ها را بده.',
-        1049 => 'پایگاه داده‌ای با این نام پیدا نشد. بعضی پنل‌ها به نام، پیشوند اضافه می‌کنند.',
+        1044 => 'این کاربر به آن پایگاه داده دسترسی ندارد، یا پایگاه داده‌ای با این نام وجود ندارد. '
+              . 'در پنل هاست نام دقیق را ببین (بزرگی و کوچکی حروف مهم است) و کاربر را به آن وصل کن.',
+        1049 => 'پایگاه داده‌ای با این نام پیدا نشد. نام دقیق را از پنل هاست بردار.',
         2002 => 'سرور پایگاه داده در دسترس نیست. معمولاً مقدار درست localhost است.',
         2003 => 'سرور پایگاه داده در دسترس نیست. معمولاً مقدار درست localhost است.',
     ][$code] ?? 'اتصال برقرار نشد. مقادیر را دوباره بررسی کن.';
@@ -217,7 +267,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $allOk) {
             $pdo->query('SELECT 1');
         } catch (PDOException $ex) {
             error_log('Kabutar install: ' . $ex->getMessage());
-            $errors[] = db_error_hint($ex);
+            $errors[] = db_error_hint($ex, $in['db_host'], $in['db_user'], $in['db_pass'], $in['db_name']);
             $pdo = null;
         }
     }
